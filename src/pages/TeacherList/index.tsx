@@ -6,17 +6,53 @@ import {
   RectButton,
 } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-community/async-storage';
+
+import api from '../../services/api';
 
 import PageHeader from '../../components/PageHeader';
-import TeacherItem from '../../components/TeacherItem';
+import TeacherItem, { Teacher } from '../../components/TeacherItem';
 
 import styles from './styles';
 
 function TeacherList() {
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [teachers, setTeachers] = useState([]);
+
+  const [subject, setSubject] = useState('');
+  const [week_day, setWeekDay] = useState('');
+  const [time, setTime] = useState('');
+
+  function loadFavorites() {
+    AsyncStorage.getItem('favorites').then((res) => {
+      if (res) {
+        const favoritedTeachers = JSON.parse(res);
+        const favoritedTeachersId = favoritedTeachers.map(
+          (teacher: Teacher) => {
+            return teacher.id;
+          }
+        );
+        setFavorites(favoritedTeachersId);
+      }
+    });
+  }
 
   function handleToggleFiltersVisible() {
     setIsFiltersVisible(!isFiltersVisible);
+  }
+
+  async function handleFiltersSubmit() {
+    loadFavorites();
+    const res = await api.get('/classes', {
+      params: {
+        subject,
+        week_day,
+        time,
+      },
+    });
+    setIsFiltersVisible(false);
+    setTeachers(res.data);
   }
 
   return (
@@ -34,6 +70,8 @@ function TeacherList() {
             <Text style={styles.label}>Matéria</Text>
             <TextInput
               style={styles.input}
+              value={subject}
+              onChangeText={(text) => setSubject(text)}
               placeholder="Qual a matéria?"
               placeholderTextColor="#c1bccc"
             />
@@ -43,6 +81,8 @@ function TeacherList() {
                 <Text style={styles.label}>Dia da semana</Text>
                 <TextInput
                   style={styles.input}
+                  value={week_day}
+                  onChangeText={(text) => setWeekDay(text)}
                   placeholder="Qual o dia?"
                   placeholderTextColor="#c1bccc"
                 />
@@ -52,13 +92,18 @@ function TeacherList() {
                 <Text style={styles.label}>Horário</Text>
                 <TextInput
                   style={styles.input}
+                  value={time}
+                  onChangeText={(text) => setTime(text)}
                   placeholder="Qual o horário?"
                   placeholderTextColor="#c1bccc"
                 />
               </View>
             </View>
 
-            <RectButton style={styles.submitButton}>
+            <RectButton
+              onPress={handleFiltersSubmit}
+              style={styles.submitButton}
+            >
               <Text style={styles.submitButtonText}>Filtrar</Text>
             </RectButton>
           </View>
@@ -71,12 +116,15 @@ function TeacherList() {
           paddingBottom: 16,
         }}
       >
-        <TeacherItem />
-        <TeacherItem />
-        <TeacherItem />
-        <TeacherItem />
-        <TeacherItem />
-        <TeacherItem />
+        {teachers.map((teacher: Teacher) => {
+          return (
+            <TeacherItem
+              teacher={teacher}
+              key={teacher.id}
+              favorited={favorites.includes(teacher.id)}
+            />
+          );
+        })}
       </ScrollView>
     </View>
   );
