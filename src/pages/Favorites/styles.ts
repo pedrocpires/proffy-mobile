@@ -7,6 +7,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 40,
   },
+  teacherList: {
+    marginTop: -40,
+  },
 });
 
 export default styles;
